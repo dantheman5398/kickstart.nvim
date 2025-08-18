@@ -111,9 +111,6 @@ vim.o.mouse = 'a'
 vim.o.showmode = false
 
 -- Sync clipboard between OS and Neovim.
---  Schedule the setting after `UiEnter` because it can increase startup-time.
---  Remove this option if you want your OS clipboard to remain independent.
---  See `:help 'clipboard'`
 vim.schedule(function()
   vim.o.clipboard = 'unnamedplus'
 end)
@@ -219,6 +216,15 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   group = vim.api.nvim_create_augroup('kickstart-highlight-yank', { clear = true }),
   callback = function()
     vim.hl.on_yank()
+  end,
+})
+
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = { 'markdown', 'text', 'rst' },
+  callback = function()
+    vim.opt_local.autoindent = false
+    vim.opt_local.cindent = false
+    vim.opt_local.smartindent = false
   end,
 })
 
@@ -426,6 +432,18 @@ require('lazy').setup({
       -- Enable Telescope extensions if they are installed
       pcall(require('telescope').load_extension, 'fzf')
       pcall(require('telescope').load_extension, 'ui-select')
+
+      -- Harpoon integration with Telescope
+      local harpoon = require('harpoon')
+      vim.keymap.set('n', '<leader>sm', function()
+        harpoon.ui:toggle_quick_menu(harpoon:list(), { 
+          theme = 'dropdown',
+          layout_config = {
+            width = 0.8,
+            height = 0.8,
+          }
+        })
+      end, { desc = '[S]earch Harpoon [M]arks' })
 
       -- See `:help telescope.builtin`
       local builtin = require 'telescope.builtin'
@@ -675,7 +693,7 @@ require('lazy').setup({
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
         -- clangd = {},
-        -- gopls = {},
+        gopls = {},
         -- pyright = {},
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
@@ -976,6 +994,45 @@ require('lazy').setup({
   --  Here are some example plugins that I've included in the Kickstart repository.
   --  Uncomment any of the lines below to enable them (you will need to restart nvim).
   --
+  -- Harpoon for quick file navigation
+  {
+    'ThePrimeagen/harpoon',
+    branch = 'harpoon2',
+    dependencies = { 'nvim-lua/plenary.nvim' },
+    config = function()
+      local harpoon = require('harpoon')
+      harpoon:setup()
+
+      -- Basic keymaps
+      vim.keymap.set('n', '<leader>a', function() harpoon:list():add() end, { desc = 'Harpoon: Add file' })
+      vim.keymap.set('n', '<C-e>', function() harpoon.ui:toggle_quick_menu(harpoon:list()) end, { desc = 'Harpoon: Toggle quick menu' })
+
+      vim.keymap.set('n', '<C-h>', function() harpoon:list():select(1) end, { desc = 'Harpoon: Go to file 1' })
+      vim.keymap.set('n', '<C-t>', function() harpoon:list():select(2) end, { desc = 'Harpoon: Go to file 2' })
+      vim.keymap.set('n', '<C-n>', function() harpoon:list():select(3) end, { desc = 'Harpoon: Go to file 3' })
+      vim.keymap.set('n', '<C-s>', function() harpoon:list():select(4) end, { desc = 'Harpoon: Go to file 4' })
+
+      -- Toggle previous & next buffers stored within Harpoon list
+      vim.keymap.set('n', '<C-S-P>', function() harpoon:list():prev() end, { desc = 'Harpoon: Previous buffer' })
+      vim.keymap.set('n', '<C-S-N>', function() harpoon:list():next() end, { desc = 'Harpoon: Next buffer' })
+    end,
+  },
+
+  -- Undotree for undo history visualization
+  {
+    'mbbill/undotree',
+    config = function()
+      -- Configure undotree
+      vim.g.undotree_WindowLayout = 2
+      vim.g.undotree_SplitWidth = 40
+      vim.g.undotree_SetFocusWhenToggle = 1
+      vim.g.undotree_ShortIndicators = 1
+      
+      -- Key mapping
+      vim.keymap.set('n', '<leader>u', '<cmd>UndotreeToggle<CR>', { desc = 'Toggle [U]ndotree' })
+    end,
+  },
+
   -- require 'kickstart.plugins.debug',
   -- require 'kickstart.plugins.indent_line',
   -- require 'kickstart.plugins.lint',
