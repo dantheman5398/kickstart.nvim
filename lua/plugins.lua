@@ -81,6 +81,7 @@ return {
         end,
       },
       { 'nvim-telescope/telescope-ui-select.nvim' },
+      { 'nvim-telescope/telescope-file-browser.nvim' },
       { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
     },
     config = function()
@@ -94,16 +95,17 @@ return {
 
       pcall(require('telescope').load_extension, 'fzf')
       pcall(require('telescope').load_extension, 'ui-select')
+      pcall(require('telescope').load_extension, 'file_browser')
 
       -- Harpoon integration with Telescope (deferred to avoid loading order issues)
       vim.keymap.set('n', '<leader>sm', function()
-        local harpoon = require('harpoon')
-        harpoon.ui:toggle_quick_menu(harpoon:list(), { 
+        local harpoon = require 'harpoon'
+        harpoon.ui:toggle_quick_menu(harpoon:list(), {
           theme = 'dropdown',
           layout_config = {
             width = 0.8,
             height = 0.8,
-          }
+          },
         })
       end, { desc = '[S]earch Harpoon [M]arks' })
 
@@ -136,6 +138,16 @@ return {
       vim.keymap.set('n', '<leader>sn', function()
         builtin.find_files { cwd = vim.fn.stdpath 'config' }
       end, { desc = '[S]earch [N]eovim files' })
+
+      -- Multigrep keymap
+      vim.keymap.set('n', '<leader>sG', function()
+        require('multigrep').multigrep()
+      end, { desc = '[S]earch [G]rep (Multi)' })
+
+      -- File browser keymaps
+      vim.keymap.set('n', '<leader>eb', ':Telescope file_browser<CR>', { desc = '[E]xplore [B]rowser' })
+      vim.keymap.set('n', '<leader>eB', ':Telescope file_browser path=%:p:h select_buffer=true<CR>', { desc = '[E]xplore [B]rowser (current file)' })
+      vim.keymap.set('n', '<leader>eh', ':help telescope-file-browser<CR>', { desc = '[E]xplore [H]elp' })
     end,
   },
 
@@ -248,6 +260,17 @@ return {
 
       local servers = {
         gopls = {},
+        pyright = {
+          settings = {
+            python = {
+              analysis = {
+                autoSearchPaths = true,
+                diagnosticMode = "workspace",
+                useLibraryCodeForTypes = true,
+              },
+            },
+          },
+        },
         lua_ls = {
           settings = {
             Lua = {
@@ -262,6 +285,7 @@ return {
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
         'stylua',
+        'black',
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -308,6 +332,7 @@ return {
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
+        python = { 'black' },
       },
     },
   },
@@ -366,10 +391,10 @@ return {
   },
 
   { -- Highlight todo, notes, etc in comments
-    'folke/todo-comments.nvim', 
-    event = 'VimEnter', 
-    dependencies = { 'nvim-lua/plenary.nvim' }, 
-    opts = { signs = false }
+    'folke/todo-comments.nvim',
+    event = 'VimEnter',
+    dependencies = { 'nvim-lua/plenary.nvim' },
+    opts = { signs = false },
   },
 
   { -- Collection of various small independent plugins/modules
@@ -391,7 +416,7 @@ return {
     build = ':TSUpdate',
     main = 'nvim-treesitter.configs',
     opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
+      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'python', 'query', 'vim', 'vimdoc' },
       auto_install = true,
       highlight = {
         enable = true,
@@ -406,19 +431,35 @@ return {
     branch = 'harpoon2',
     dependencies = { 'nvim-lua/plenary.nvim' },
     config = function()
-      local harpoon = require('harpoon')
+      local harpoon = require 'harpoon'
       harpoon:setup()
 
-      vim.keymap.set('n', '<leader>a', function() harpoon:list():add() end, { desc = 'Harpoon: Add file' })
-      vim.keymap.set('n', '<C-e>', function() harpoon.ui:toggle_quick_menu(harpoon:list()) end, { desc = 'Harpoon: Toggle quick menu' })
+      vim.keymap.set('n', '<leader>a', function()
+        harpoon:list():add()
+      end, { desc = 'Harpoon: Add file' })
+      vim.keymap.set('n', '<C-M-e>', function()
+        harpoon.ui:toggle_quick_menu(harpoon:list())
+      end, { desc = 'Harpoon: Toggle quick menu' })
 
-      vim.keymap.set('n', '<C-h>', function() harpoon:list():select(1) end, { desc = 'Harpoon: Go to file 1' })
-      vim.keymap.set('n', '<C-t>', function() harpoon:list():select(2) end, { desc = 'Harpoon: Go to file 2' })
-      vim.keymap.set('n', '<C-n>', function() harpoon:list():select(3) end, { desc = 'Harpoon: Go to file 3' })
-      vim.keymap.set('n', '<C-s>', function() harpoon:list():select(4) end, { desc = 'Harpoon: Go to file 4' })
+      vim.keymap.set('n', '<C-M-a>', function()
+        harpoon:list():select(1)
+      end, { desc = 'Harpoon: Go to file 1' })
+      vim.keymap.set('n', '<C-M-r>', function()
+        harpoon:list():select(2)
+      end, { desc = 'Harpoon: Go to file 2' })
+      vim.keymap.set('n', '<C-M-s>', function()
+        harpoon:list():select(3)
+      end, { desc = 'Harpoon: Go to file 3' })
+      vim.keymap.set('n', '<C-M-t>', function()
+        harpoon:list():select(4)
+      end, { desc = 'Harpoon: Go to file 4' })
 
-      vim.keymap.set('n', '<C-S-P>', function() harpoon:list():prev() end, { desc = 'Harpoon: Previous buffer' })
-      vim.keymap.set('n', '<C-S-N>', function() harpoon:list():next() end, { desc = 'Harpoon: Next buffer' })
+      vim.keymap.set('n', '<C-S-P>', function()
+        harpoon:list():prev()
+      end, { desc = 'Harpoon: Previous buffer' })
+      vim.keymap.set('n', '<C-S-N>', function()
+        harpoon:list():next()
+      end, { desc = 'Harpoon: Next buffer' })
     end,
   },
 
@@ -429,8 +470,41 @@ return {
       vim.g.undotree_SplitWidth = 40
       vim.g.undotree_SetFocusWhenToggle = 1
       vim.g.undotree_ShortIndicators = 1
-      
+
       vim.keymap.set('n', '<leader>u', '<cmd>UndotreeToggle<CR>', { desc = 'Toggle [U]ndotree' })
     end,
   },
+
+  { -- Oil.nvim for directory editing
+    'stevearc/oil.nvim',
+    opts = {},
+    dependencies = { 'nvim-tree/nvim-web-devicons' },
+    config = function()
+      require('oil').setup({
+        columns = {
+          'icon',
+          'permissions',
+          'size',
+          'mtime',
+        },
+        view_options = {
+          show_hidden = false,
+          is_hidden_file = function(name, bufnr)
+            return vim.startswith(name, '.')
+          end,
+          is_always_hidden = function(name, bufnr)
+            return false
+          end,
+        },
+      })
+      vim.keymap.set('n', '-', '<CMD>Oil<CR>', { desc = 'Open parent directory' })
+      vim.keymap.set('n', '<leader>-', function()
+        vim.cmd('split')
+        vim.cmd('wincmd k')
+        vim.cmd('resize 15')
+        vim.cmd('Oil')
+      end, { desc = 'Open Oil in top pane' })
+    end,
+  },
 }
+

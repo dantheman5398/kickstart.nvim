@@ -173,6 +173,35 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 
+-- Copy full path of current file to clipboard
+vim.keymap.set('n', '<leader>yp', function()
+  vim.fn.setreg('+', vim.fn.expand('%:p'))
+  vim.notify('Copied: ' .. vim.fn.expand('%:p'))
+end, { desc = '[Y]ank full [P]ath of current file' })
+
+-- Quickfix keymaps
+vim.keymap.set('n', '<leader>co', '<cmd>copen<CR>', { desc = '[C]quickfix [O]pen' })
+vim.keymap.set('n', '<leader>cc', '<cmd>cclose<CR>', { desc = '[C]quickfix [C]lose' })
+vim.keymap.set('n', '<leader>cn', '<cmd>cnext<CR>', { desc = '[C]quickfix [N]ext' })
+vim.keymap.set('n', '<leader>cp', '<cmd>cprev<CR>', { desc = '[C]quickfix [P]revious' })
+vim.keymap.set('n', '<leader>cf', '<cmd>cfirst<CR>', { desc = '[C]quickfix [F]irst' })
+vim.keymap.set('n', '<leader>cl', '<cmd>clast<CR>', { desc = '[C]quickfix [L]ast' })
+
+-- Quickfix search and replace helpers
+vim.keymap.set('n', '<leader>cdo', function()
+  local input = vim.fn.input('cdo s/')
+  if input ~= '' then
+    vim.cmd('cdo s/' .. input .. ' | update')
+  end
+end, { desc = '[C]quickfix [do] search/replace each entry' })
+
+vim.keymap.set('n', '<leader>cfdo', function()
+  local input = vim.fn.input('cfdo %s/')
+  if input ~= '' then
+    vim.cmd('cfdo %s/' .. input .. ' | update')
+  end
+end, { desc = '[C]quickfix [f][do] search/replace each file' })
+
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
 -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
 -- is not what someone will guess without a bit more experience.
